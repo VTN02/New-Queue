@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 
 const queueSchema = new mongoose.Schema({
+  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', index: true },
   name: { type: String, required: true, trim: true, minlength: 2, maxlength: 60 },
   queueNumber: { type: Number, required: true, unique: true },
   serviceType: {

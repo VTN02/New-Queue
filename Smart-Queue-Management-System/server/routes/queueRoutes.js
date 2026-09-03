@@ -1,13 +1,14 @@
 import { Router } from 'express';
-import { body } from 'express-validator';
-import { joinQueue, getQueue, getStatus, dashboard, nextCustomer, completeCustomer, resetQueue } from '../controllers/queueController.js';
+import { joinQueue, getQueue, getStatus, summary, dashboard, nextCustomer, completeCustomer, resetQueue } from '../controllers/queueController.js';
+import { protect, adminOnly } from '../middleware/auth.js';
 
-const router=Router();
-router.post('/join', [body('name').trim().isLength({min:2,max:60}), body('serviceType').notEmpty()], joinQueue);
+const router = Router();
+router.post('/join', protect, joinQueue);
 router.get('/status/:queueNumber', getStatus);
-router.get('/dashboard', dashboard);
+router.get('/summary', summary);
+router.get('/dashboard', protect, adminOnly, dashboard);
 router.get('/', getQueue);
-router.post('/next', nextCustomer);
-router.put('/:id/complete', completeCustomer);
-router.delete('/reset', resetQueue);
+router.post('/next', protect, adminOnly, nextCustomer);
+router.put('/:id/complete', protect, adminOnly, completeCustomer);
+router.delete('/reset', protect, adminOnly, resetQueue);
 export default router;

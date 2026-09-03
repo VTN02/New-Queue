@@ -4,17 +4,16 @@ const SERVICES = ['General Service', 'Customer Support', 'Payment', 'Technical S
 
 export async function joinQueue(req, res) {
   try {
-    const { name, serviceType } = req.body;
-    if (!name || !name.trim()) return res.status(400).json({ success:false, message:'Name is required.' });
-    if (name.trim().length < 2) return res.status(400).json({ success:false, message:'Name must contain at least 2 characters.' });
+    const { serviceType } = req.body;
     if (!SERVICES.includes(serviceType)) return res.status(400).json({ success:false, message:'Please select a valid service.' });
 
     const latest = await Queue.findOne().sort({ queueNumber: -1 });
     const queueNumber = (latest?.queueNumber || 0) + 1;
 
-    const item = await Queue.create({ name: name.trim(), serviceType, queueNumber });
+    const item = await Queue.create({ name: req.user.fullName, serviceType, queueNumber, user: req.user._id });
     res.status(201).json({ success:true, data:item });
   } catch (error) {
+    if (error.code === 11000) return res.status(409).json({ success:false, message:'Many people are joining right now. Please try again.' });
     res.status(500).json({ success:false, message:error.message });
   }
 }
@@ -47,6 +46,19 @@ export async function getStatus(req, res) {
         approximateMinutes: user.status === 'waiting' ? ahead * 5 : 0,
         totalWaiting: waiting
       }
+    });
+  } catch (error) { res.status(500).json({ success:false, message:error.message }); }
+}
+
+export async function summary(req, res) {
+  try {
+    const [serving, waiting] = await Promise.all([
+      Queue.findOne({ status:'serving' }).sort({ queueNumber: 1 }),
+      Queue.countDocuments({ status:'waiting' })
+    ]);
+    res.json({
+      success:true,
+      data:{ currentlyServing: serving?.queueNumber || null, serviceType: serving?.serviceType || null, waiting }
     });
   } catch (error) { res.status(500).json({ success:false, message:error.message }); }
 }
